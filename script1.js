@@ -378,10 +378,10 @@ async function processBoard() {
         return;
     }
 
-    if (activeMode === '4photos' && (!handFiles.N || !handFiles.E || !handFiles.S || !handFiles.W)) {
-        alert("Lütfen 4 el fotoğrafını da tamamlayın!");
-        return;
-    }
+    // if (activeMode === '4photos' && (!handFiles.N || !handFiles.E || !handFiles.S || !handFiles.W)) {
+    //     alert("Lütfen 4 el fotoğrafını da tamamlayın!");
+    //     return;
+    // }
 
     if (activeMode === 'singleTable' && !singleTableFile) {
         alert("Lütfen masanın tek kare fotoğrafını seçin veya çekin!");
