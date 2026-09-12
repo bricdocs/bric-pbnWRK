@@ -2,151 +2,185 @@
 // cropscript.js - Entegre Kadraj ve Yön Yönetim Modülü (v2.1)
 // ============================================================
 
+const dirNames = ['N', 'E', 'S', 'W'];
+const dirLabels = { N: 'KUZEY (N)', E: 'DOĞU (E)', S: 'GÜNEY (S)', W: 'BATI (W)' };
+const dirFileSuffix = { N: 'NORTH', E: 'EAST', S: 'SOUTH', W: 'WEST' };
+
 let loadedImage = null;
-let currentNorthRegion = null;
-const regionDirections = {}; // Örn: { 1: 'N', 2: 'E', 3: 'S', 4: 'W' }
+let activeNorthIndex = null;
+const boxCanvases = [null, null, null, null];
+const boxAssignedDirs = [null, null, null, null];
 
-document.addEventListener("DOMContentLoaded", () => {
-    initCropControls();
-});
+function handleImageUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
 
-function initCropControls() {
-    const fileInput = document.getElementById("board-image-input");
-    if (!fileInput) return;
-
-    fileInput.addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const img = new Image();
-            img.onload = () => {
-                loadedImage = img;
-                document.getElementById("crop-controls-panel").style.display = "block";
-                document.getElementById("crop-grid-container").style.display = "block";
-                updateAllCrops();
-            };
-            img.src = event.target.result;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        const img = new Image();
+        img.onload = function() {
+            loadedImage = img;
+            document.getElementById('controlsCard').style.display = 'block';
+            document.getElementById('tableGrid').style.display = 'flex';
+            document.getElementById('statusBanner').style.display = 'block';
+            updateCrops();
+            resetDirections();
         };
-        reader.readAsDataURL(file);
-    });
-
-    // Slider Dinleyicileri
-    const sliders = ["offsetY", "offsetX", "scale", "boxSize"];
-    sliders.forEach(id => {
-        const slider = document.getElementById(`slider-${id}`);
-        const badge = document.getElementById(`val-${id}`);
-        if (slider) {
-            slider.addEventListener("input", () => {
-                if (badge) {
-                    const unit = id === "scale" ? "x" : "px";
-                    badge.textContent = slider.value + unit;
-                }
-                updateAllCrops();
-            });
-        }
-    });
+        img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
 }
 
-function updateAllCrops() {
+function updateCrops() {
     if (!loadedImage) return;
 
-    const offsetY = parseInt(document.getElementById("slider-offsetY").value) || 0;
-    const offsetX = parseInt(document.getElementById("slider-offsetX").value) || 0;
-    const scale = parseFloat(document.getElementById("slider-scale").value) || 1.0;
-    const boxSize = parseInt(document.getElementById("slider-boxSize").value) || 280;
+    const topPct = parseInt(document.getElementById('sliderTop').value) / 100;
+    const bottomPct = parseInt(document.getElementById('sliderBottom').value) / 100;
+    const leftPct = parseInt(document.getElementById('sliderLeft').value) / 100;
+    const rightPct = parseInt(document.getElementById('sliderRight').value) / 100;
 
-    const imgW = loadedImage.naturalWidth;
-    const imgH = loadedImage.naturalHeight;
-    const centerX = (imgW / 2) + offsetX;
-    const centerY = (imgH / 2) + offsetY;
+    document.getElementById('valTop').innerText = Math.round(topPct * 100) + '%';
+    document.getElementById('valBottom').innerText = Math.round(bottomPct * 100) + '%';
+    document.getElementById('valLeft').innerText = Math.round(leftPct * 100) + '%';
+    document.getElementById('valRight').innerText = Math.round(rightPct * 100) + '%';
 
-    const scaledBoxSize = boxSize * scale;
+    const w = loadedImage.naturalWidth;
+    const h = loadedImage.naturalHeight;
 
-    // 4 Bölgenin Merkez Koordinatları (1=Üst, 2=Sağ, 3=Alt, 4=Sol)
-    const centers = {
-        1: { x: centerX, y: centerY - scaledBoxSize * 1.1 },
-        2: { x: centerX + scaledBoxSize * 1.1, y: centerY },
-        3: { x: centerX, y: centerY + scaledBoxSize * 1.1 },
-        4: { x: centerX - scaledBoxSize * 1.1, y: centerY }
-    };
+    // Kendi bölge hesaplamalarınız:
+    const cropSpecs = [
+        { x: 0, y: 0, width: w, height: topPct * h },                                   // Box 0 (Üst)
+        { x: (1 - rightPct) * w, y: 0.18 * h, width: rightPct * w, height: 0.64 * h },  // Box 1 (Sağ)
+        { x: 0, y: (1 - bottomPct) * h, width: w, height: bottomPct * h },              // Box 2 (Alt)
+        { x: 0, y: 0.18 * h, width: leftPct * w, height: 0.64 * h }                     // Box 3 (Sol)
+    ];
 
-    for (let i = 1; i <= 4; i++) {
-        cropRegionToCanvas(i, centers[i].x, centers[i].y, scaledBoxSize);
-    }
-}
+    for (let i = 0; i < 4; i++) {
+        const spec = cropSpecs[i];
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(spec.width);
+        canvas.height = Math.round(spec.height);
 
-function cropRegionToCanvas(regionId, cx, cy, boxSize) {
-    const canvas = document.getElementById(`canvas-region-${regionId}`);
-    if (!canvas || !loadedImage) return;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(
+            loadedImage,
+            Math.round(spec.x), Math.round(spec.y), Math.round(spec.width), Math.round(spec.height),
+            0, 0, canvas.width, canvas.height
+        );
 
-    const ctx = canvas.getContext("2d");
-    canvas.width = boxSize;
-    canvas.height = boxSize;
-
-    const sx = cx - boxSize / 2;
-    const sy = cy - boxSize / 2;
-
-    ctx.clearRect(0, 0, boxSize, boxSize);
-    ctx.drawImage(
-        loadedImage,
-        sx, sy, boxSize, boxSize,
-        0, 0, boxSize, boxSize
-    );
-}
-
-// 🧭 Kuzey Yönü Atama Mantığı (Saat Yönü Dönüşü)
-function setNorthRegion(northRegionId) {
-    currentNorthRegion = northRegionId;
-    const dirs = ['N', 'E', 'S', 'W'];
-    const badgeClasses = {
-        'N': 'badge-N',
-        'E': 'badge-E',
-        'S': 'badge-S',
-        'W': 'badge-W'
-    };
-
-    for (let r = 1; r <= 4; r++) {
-        const dirIdx = (r - northRegionId + 4) % 4;
-        const dir = dirs[dirIdx];
-        regionDirections[r] = dir;
-
-        const cardEl = document.getElementById(`card-region-${r}`);
-        const badgeEl = document.getElementById(`badge-region-${r}`);
-
-        if (badgeEl) {
-            badgeEl.className = `dir-badge ${badgeClasses[dir]}`;
-            badgeEl.textContent = `Yön: ${dir}`;
-        }
-
-        if (cardEl) {
-            cardEl.className = `crop-card ${dir === 'N' ? 'is-north' : 'is-assigned'}`;
+        boxCanvases[i] = canvas;
+        const prevEl = document.getElementById(`cropPrev-${i}`);
+        if (prevEl) {
+            prevEl.src = canvas.toDataURL('image/jpeg', 0.92);
         }
     }
+}
 
-    const btnAnalyze = document.getElementById("btn-analyze");
-    if (btnAnalyze) {
-        btnAnalyze.disabled = false;
+function resetDirections() {
+    activeNorthIndex = null;
+    for (let i = 0; i < 4; i++) {
+        boxAssignedDirs[i] = null;
+        const card = document.getElementById(`cropCard-${i}`);
+        const badge = document.getElementById(`cropBadge-${i}`);
+        
+        if (card) card.className = 'crop-card';
+        if (badge) {
+            badge.className = 'dir-badge unassigned';
+            badge.innerText = 'Seçilmedi';
+        }
+    }
+    const btnDL = document.getElementById('btnDownload');
+    if (btnDL) btnDL.disabled = true;
+
+    const btnAnalyze = document.getElementById('btn-analyze');
+    if (btnAnalyze) btnAnalyze.disabled = true;
+    
+    const banner = document.getElementById('statusBanner');
+    if (banner) {
+        banner.className = 'status-banner status-info';
+        banner.innerHTML = '⚠️ Lütfen Kuzey (N) olan kutunun altındaki <strong>"🧭 Bu Kutu Kuzey (N)"</strong> butonuna tıklayın.';
     }
 }
 
-// 📦 Gemini API için Kırpılmış Görselleri [N, E, S, W] Sırasıyla Dönen Fonksiyon
+function setNorthPosition(northIndex) {
+    activeNorthIndex = northIndex;
+
+    for (let k = 0; k < 4; k++) {
+        const boxIdx = (northIndex + k) % 4;
+        const dir = dirNames[k];
+        boxAssignedDirs[boxIdx] = dir;
+
+        const card = document.getElementById(`cropCard-${boxIdx}`);
+        const badge = document.getElementById(`cropBadge-${boxIdx}`);
+
+        if (card) card.className = boxIdx === northIndex ? 'crop-card is-north' : 'crop-card is-assigned';
+        if (badge) {
+            badge.className = `dir-badge badge-${dir}`;
+            badge.innerText = dirLabels[dir];
+        }
+    }
+
+    const btnDL = document.getElementById('btnDownload');
+    if (btnDL) btnDL.disabled = false;
+
+    const btnAnalyze = document.getElementById('btn-analyze');
+    if (btnAnalyze) btnAnalyze.disabled = false;
+
+    const banner = document.getElementById('statusBanner');
+    if (banner) {
+        banner.className = 'status-banner status-success';
+        banner.innerHTML = '✅ Kuzey belirlendi! Tüm yönler saat yönünde (N → E → S → W) atandı. Analiz edebilir veya indirebilirsiniz.';
+    }
+}
+
+async function downloadAllCrops() {
+    if (activeNorthIndex === null) return;
+
+    const downloadBtn = document.getElementById('btnDownload');
+    if (downloadBtn) {
+        downloadBtn.disabled = true;
+        downloadBtn.innerText = '⏳ Fotoğraflar İndiriliyor...';
+    }
+
+    for (let i = 0; i < 4; i++) {
+        const canvas = boxCanvases[i];
+        const dir = boxAssignedDirs[i];
+        if (!canvas || !dir) continue;
+
+        const fileName = `bridge_crop_${dirFileSuffix[dir]}.jpg`;
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+    }
+
+    if (downloadBtn) {
+        downloadBtn.disabled = false;
+        downloadBtn.innerText = '⬇️ 4 Bölgeyi de İndir (Tüm Yönler)';
+    }
+}
+
+// ============================================================
+// SCRIPT1.JS İLE Gemini ANALİZİ İÇİN KÖPRÜ FONKSİYON
+// ============================================================
 function getCroppedImagesPayload() {
-    if (!currentNorthRegion) return [];
-
+    if (activeNorthIndex === null) return [];
+    
     const payload = [];
-    const dirs = ['N', 'E', 'S', 'W'];
+    const targetDirs = ['N', 'E', 'S', 'W'];
 
-    dirs.forEach(targetDir => {
-        const regionId = Object.keys(regionDirections).find(r => regionDirections[r] === targetDir);
-        if (regionId) {
-            const canvas = document.getElementById(`canvas-region-${regionId}`);
-            if (canvas) {
-                payload.push(canvas.toDataURL("image/jpeg", 0.85));
-            }
+    for (let dir of targetDirs) {
+        const boxIdx = boxAssignedDirs.indexOf(dir);
+        if (boxIdx !== -1 && boxCanvases[boxIdx]) {
+            payload.push(boxCanvases[boxIdx].toDataURL('image/jpeg', 0.92));
         }
-    });
+    }
 
     return payload;
 }
