@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge Board Digitizer - Entegre Kadraj Sistemi</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="cropstyle.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Bridge Board Digitizer <span class="badge">v2.0 Entegre</span></h1>
+            <p class="subtitle">Tek Fotoğraftan Dinamik Kadrajlama ve Gemini AI Analizi</p>
+        </header>
+
+        <!-- 1. API KEY SAKLAMA VE DOĞRULAMA PANELSİ -->
+        <div class="panel" id="api-panel">
+            <h3>Gemini API Anahtarı Yönetimi</h3>
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <input type="password" id="api-key-input" placeholder="Gemini API Key giriniz..." style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+                <button class="btn btn-success" id="btn-save-key">Kaydet & Doğrula</button>
+            </div>
+            <div id="api-status" class="status-banner status-info" style="margin-top: 10px; display: none;"></div>
+        </div>
+
+        <!-- 2. BORD NUMARASI VE TURNUVA YÖNETİMİ -->
+        <div class="panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <label for="board-number" style="font-weight: 600; margin-right: 8px;">Bord No:</label>
+                    <select id="board-number" style="padding: 8px 12px; border-radius: 6px; background: #0f172a; color: #38bdf8; border: 1px solid #334155; font-weight: bold;">
+                        <!-- JS ile 1-32 arası dinamik doldurulacak -->
+                    </select>
+                </div>
+                <div>
+                    <button class="btn" id="btn-reset-memory" style="background: #ef4444;">Hafızayı Sıfırla (Yeni Turnuva)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. DİNAMİK KADRAJLAMA VE GÖRSEL YÜKLEME ALANI (crop.html Entegrasyonu) -->
+        <div class="panel">
+            <div class="upload-area" id="single-upload-area" onclick="document.getElementById('board-image-input').click()">
+                <span class="btn-upload">📷 Bord Fotoğrafı Yükle veya Çek</span>
+                <span class="upload-hint">Tek kare masa/bord fotoğrafı seçin</span>
+                <input type="file" id="board-image-input" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- KONTROL SLIDERLARI -->
+            <div class="controls-card" id="crop-controls-panel" style="display: none;">
+                <h3>Dinamik Kadraj Ayarları</h3>
+                <div class="grid-controls">
+                    <div class="control-group">
+                        <label>Dikey Ofset (Y) <span class="val-badge" id="val-offsetY">0px</span></label>
+                        <input type="range" id="slider-offsetY" min="-150" max="150" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>Yatay Ofset (X) <span class="val-badge" id="val-offsetX">0px</span></label>
+                        <input type="range" id="slider-offsetX" min="-150" max="150" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label>Ölçek (Scale) <span class="val-badge" id="val-scale">1.0x</span></label>
+                        <input type="range" id="slider-scale" min="0.5" max="1.5" step="0.05" value="1.0">
+                    </div>
+                    <div class="control-group">
+                        <label>Kutu Boyutu <span class="val-badge" id="val-boxSize">280px</span></label>
+                        <input type="range" id="slider-boxSize" min="150" max="400" value="280">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 BÖLGELİ KADRAJ MASA DÜZENİ -->
+            <div id="crop-grid-container" style="display: none;">
+                <div class="table-grid">
+                    <!-- ÜST BÖLGE (Bölge 1) -->
+                    <div class="crop-card" id="card-region-1">
+                        <span class="region-label">Üst Bölge (Kutu 1)</span>
+                        <span class="dir-badge unassigned" id="badge-region-1">Atanmadı</span>
+                        <canvas id="canvas-region-1" class="crop-preview-img"></canvas>
+                        <button class="btn-set-north" onclick="setNorthRegion(1)">🧭 Bu Kutu Kuzey</button>
+                    </div>
+
+                    <!-- ORTA SATIR (Bölge 4 ve Bölge 2) -->
+                    <div class="grid-middle-row">
+                        <div class="crop-card" id="card-region-4">
+                            <span class="region-label">Sol Bölge (Kutu 4)</span>
+                            <span class="dir-badge unassigned" id="badge-region-4">Atanmadı</span>
+                            <canvas id="canvas-region-4" class="crop-preview-img"></canvas>
+                            <button class="btn-set-north" onclick="setNorthRegion(4)">🧭 Bu Kutu Kuzey</button>
+                        </div>
+                        <div class="crop-card" id="card-region-2">
+                            <span class="region-label">Sağ Bölge (Kutu 2)</span>
+                            <span class="dir-badge unassigned" id="badge-region-2">Atanmadı</span>
+                            <canvas id="canvas-region-2" class="crop-preview-img"></canvas>
+                            <button class="btn-set-north" onclick="setNorthRegion(2)">🧭 Bu Kutu Kuzey</button>
+                        </div>
+                    </div>
+
+                    <!-- ALT BÖLGE (Bölge 3) -->
+                    <div class="crop-card" id="card-region-3">
+                        <span class="region-label">Alt Bölge (Kutu 3)</span>
+                        <span class="dir-badge unassigned" id="badge-region-3">Atanmadı</span>
+                        <canvas id="canvas-region-3" class="crop-preview-img"></canvas>
+                        <button class="btn-set-north" onclick="setNorthRegion(3)">🧭 Bu Kutu Kuzey</button>
+                    </div>
+                </div>
+
+                <button class="btn btn-success btn-large" id="btn-analyze" disabled>🤖 Gemini ile Analiz Et ve Kartları Oku</button>
+            </div>
+        </div>
+
+        <!-- 4. ANALİZ SONUÇLARI VE 52 KART DOĞRULAMA MODÜLÜ -->
+        <div class="panel" id="results-panel" style="display: none;">
+            <h3>Analiz Sonuçları ve Doğrulama</h3>
+            <div id="deck-validation-status" class="status-banner" style="margin-top: 10px;"></div>
+
+            <!-- Kart Editör Tablosu -->
+            <div id="hands-editor-container" style="margin-top: 15px; overflow-x: auto;">
+                <!-- JS tarafından N, E, S, W ellerinin düzenlenebilir alanları oluşturulacak -->
+            </div>
+        </div>
+
+        <!-- 5. PBN ÇIKTI VE TOPLU BİRLEŞTİRİCİ MODÜLÜ -->
+        <div class="panel" id="pbn-panel" style="display: none;">
+            <h3>PBN Dosya Yönetimi</h3>
+            <div style="margin-bottom: 10px;">
+                <textarea id="pbn-output" readonly style="width: 100%; height: 120px; background: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px; border-radius: 6px; border: 1px solid #334155;"></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn" id="btn-copy-pbn">📋 PBN Kopyala</button>
+                <button class="btn btn-success" id="btn-download-pbn">💾 Mevcut PBN İndir</button>
+            </div>
+
+            <!-- Toplu PBN Birleştirici -->
+            <hr style="border-color: #334155; margin: 20px 0;">
+            <h4>Turnuva Toplu PBN İçe/Dışa Aktarma</h4>
+            <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                <button class="btn" id="btn-export-all-pbn" style="background: #8b5cf6;">📦 Tüm Bordları Tek PBN Olarak İndir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gizli Tam Resim Canvas İşleyici -->
+    <canvas id="hidden-source-canvas" style="display: none;"></canvas>
+
+    <script src="prompts.js"></script>
+    <script src="cropscript.js"></script>
+    <script src="script1.js"></script>
+    <script src="script2.js"></script>
+</body>
+</html>
