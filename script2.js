@@ -1,10 +1,6 @@
 // ============================================================
-// script2.js - Bridge Board Digitizer Tam ve Kesintisiz Sürüm v2.2
+// script2.js - Bridge Board Digitizer (Hatasız ve Eksiksiz Sürüm)
 // ============================================================
-
-const SUITS = ['S', 'H', 'D', 'C'];
-const PLAYERS = ['N', 'E', 'S', 'W'];
-const seqLabels = { N: 'Kuzey (N)', E: 'Doğu (E)', S: 'Güney (S)', W: 'Batı (W)' };
 
 let tournamentBoards = JSON.parse(localStorage.getItem("bridge_tournament_boards") || "{}");
 let loadedImageBase64 = null;
@@ -269,6 +265,7 @@ function validateDeck(hands) {
 
     const missingCount = 52 - foundCards.length;
     const statusEl = document.getElementById("deck-validation-status");
+    if (!statusEl) return false;
 
     if (totalCount === 52 && duplicates.length === 0 && missingCount === 0) {
         statusEl.style.background = "#065f46";
