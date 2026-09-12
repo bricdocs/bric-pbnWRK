@@ -54,27 +54,27 @@
             </div>
 
             <!-- MANUEL SLIDER PANELİ -->
-            <div class="controls-card" id="controlsCard" style="display: none;">
-                <h3>Dinamik Kadraj Ayarları</h3>
-                <div class="grid-controls">
-                    <div class="control-group">
-                        <label>Üst Kesim (Top) <span class="val-badge" id="valTop">30%</span></label>
-                        <input type="range" id="sliderTop" min="10" max="50" value="30" oninput="updateCrops()">
-                    </div>
-                    <div class="control-group">
-                        <label>Alt Kesim (Bottom) <span class="val-badge" id="valBottom">30%</span></label>
-                        <input type="range" id="sliderBottom" min="10" max="50" value="30" oninput="updateCrops()">
-                    </div>
-                    <div class="control-group">
-                        <label>Sol Kesim (Left) <span class="val-badge" id="valLeft">30%</span></label>
-                        <input type="range" id="sliderLeft" min="10" max="50" value="30" oninput="updateCrops()">
-                    </div>
-                    <div class="control-group">
-                        <label>Sağ Kesim (Right) <span class="val-badge" id="valRight">30%</span></label>
-                        <input type="range" id="sliderRight" min="10" max="50" value="30" oninput="updateCrops()">
-                    </div>
-                </div>
-            </div>
+<div class="controls-card" id="controlsCard" style="display: none;">
+    <h3>Kırpma Oranları ve Örtüşme Payları (Canlı Ayar)</h3>
+    <div class="grid-controls">
+        <div class="control-group">
+            <label>KUZEY (NORTH - Üst Yükseklik): <span class="val-badge" id="valTop">38%</span></label>
+            <input type="range" id="sliderTop" min="10" max="60" value="38" oninput="updateCrops()">
+        </div>
+        <div class="control-group">
+            <label>GÜNEY (SOUTH - Alt Yükseklik): <span class="val-badge" id="valBottom">38%</span></label>
+            <input type="range" id="sliderBottom" min="10" max="60" value="38" oninput="updateCrops()">
+        </div>
+        <div class="control-group">
+            <label>BATI (WEST - Sol Genişlik): <span class="val-badge" id="valLeft">42%</span></label>
+            <input type="range" id="sliderLeft" min="10" max="60" value="42" oninput="updateCrops()">
+        </div>
+        <div class="control-group">
+            <label>DOĞU (EAST - Sağ Genişlik): <span class="val-badge" id="valRight">42%</span></label>
+            <input type="range" id="sliderRight" min="10" max="60" value="42" oninput="updateCrops()">
+        </div>
+    </div>
+</div>
 
             <!-- 4 BÖLGELİ KADRAJ MASA DÜZENİ -->
             <div class="table-grid" id="tableGrid" style="display: none;">
