@@ -1,13 +1,22 @@
 // ============================================================
-// script2.js - Bridge Board Digitizer: Editor, Validation & PBN v2.2
+// script2.js - Bridge Board Digitizer Tam ve Kesintisiz Sürüm v2.2
 // ============================================================
+
+const SUITS = ['S', 'H', 'D', 'C'];
+const PLAYERS = ['N', 'E', 'S', 'W'];
+const seqLabels = { N: 'Kuzey (N)', E: 'Doğu (E)', S: 'Güney (S)', W: 'Batı (W)' };
+
+let tournamentBoards = JSON.parse(localStorage.getItem("bridge_tournament_boards") || "{}");
+let loadedImageBase64 = null;
 
 document.addEventListener("DOMContentLoaded", () => {
     initApiKeyControls();
+    initImageUpload();
     initPbnControls();
+    initAnalyzer();
 });
 
-// API Key Kontrolleri
+// 1. API KEY KONTROLLERİ
 function initApiKeyControls() {
     const keyInput = document.getElementById("apiKeyInput");
     const saveBtn = document.getElementById("btn-save-key");
@@ -19,7 +28,7 @@ function initApiKeyControls() {
             const val = keyInput.value.trim();
             if (val) {
                 localStorage.setItem("gemini_api_key", val);
-                alert("API Key kaydedildi!");
+                alert("API Key başarıyla kaydedildi!");
             } else {
                 alert("Lütfen geçerli bir API Key girin.");
             }
@@ -27,7 +36,105 @@ function initApiKeyControls() {
     }
 }
 
-// 1. ANALİZ SONUCU GELDİĞİNDE PANEL VE EDİTÖRLERİ AÇMA
+// 2. FOTOĞRAF YÜKLEME VE ÖNİZLEME
+function initImageUpload() {
+    const imageInput = document.getElementById("imageInput");
+    if (!imageInput) return;
+
+    imageInput.addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            loadedImageBase64 = event.target.result;
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.getElementById("cropCanvas");
+                const placeholder = document.getElementById("crop-placeholder");
+                if (!canvas) return;
+
+                const ctx = canvas.getContext("2d");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                canvas.style.display = "block";
+                if (placeholder) placeholder.style.display = "none";
+            };
+            img.src = loadedImageBase64;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// 3. GEMINI YAPAY ZEKA ANALİZİ
+function initAnalyzer() {
+    const analyzeBtn = document.getElementById("btn-analyze");
+    if (!analyzeBtn) return;
+
+    analyzeBtn.addEventListener("click", async () => {
+        const apiKey = localStorage.getItem("gemini_api_key");
+        if (!apiKey) {
+            alert("Lütfen önce üst kısımdan Gemini API Key'inizi girip kaydedin!");
+            return;
+        }
+        if (!loadedImageBase64) {
+            alert("Lütfen önce bir bord fotoğrafı yükleyin!");
+            return;
+        }
+
+        analyzeBtn.textContent = "Yapay Zeka Analiz Ediyor...";
+        analyzeBtn.disabled = true;
+
+        try {
+            const base64Data = loadedImageBase64.split(',')[1];
+            const mimeType = loadedImageBase64.substring(loadedImageBase64.indexOf(":") + 1, loadedImageBase64.indexOf(";"));
+
+            const promptText = `Bu briç bordu fotoğrafındaki 4 yönün (North, East, South, West) kart dağılımını oku. 
+Her yön için Maça (S), Kupa (H), Karo (D) ve Sinek (C) renklerindeki kartları eksiksiz listele.
+Yanıtı SADECE şu JSON formatında ver, başka hiçbir açıklama yazma:
+{
+  "N": {"S": "AKQ", "H": "JT9", "D": "876", "C": "5432"},
+  "E": {"S": "", "H": "", "D": "", "C": ""},
+  "S": {"S": "", "H": "", "D": "", "C": ""},
+  "W": {"S": "", "H": "", "D": "", "C": ""}
+}`;
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: promptText },
+                            { inline_data: { mime_type: mimeType, data: base64Data } }
+                        ]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            const rawText = data.candidates[0].content.parts[0].text;
+            const jsonString = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const hands = JSON.parse(jsonString);
+
+            processAnalysisResult(hands);
+        } catch (err) {
+            console.error("Analiz hatası:", err);
+            alert("Analiz sırasında hata oluştu: " + err.message);
+        } finally {
+            analyzeBtn.textContent = "🚀 Yapay Zeka ile Analiz Et";
+            analyzeBtn.disabled = false;
+        }
+    });
+}
+
+// 4. ANALİZ SONUCU PANELİ AÇMA
 function processAnalysisResult(hands) {
     document.getElementById("results-panel").style.display = "block";
     document.getElementById("pbn-panel").style.display = "block";
@@ -38,7 +145,7 @@ function processAnalysisResult(hands) {
     validateAndUpdatePbn();
 }
 
-// 2. KART EDİTÖR TABLOSUNU ÇİZME
+// 5. KART EDİTÖRÜ TABLOSU
 function renderHandsEditor(hands) {
     const container = document.getElementById("hands-editor-container");
     container.innerHTML = "";
@@ -99,7 +206,7 @@ function renderHandsEditor(hands) {
     });
 }
 
-// 3. GÖRSEL EL KONTROL GÖRÜNÜMÜ
+// 6. GÖRSEL KONTROLÜ
 function renderHumanReadableHands(parsedResults) {
     const container = document.getElementById('handsInspector');
     if (!container) return;
@@ -122,22 +229,10 @@ function renderHumanReadableHands(parsedResults) {
         html += `
             <div style="background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px;">
                 <div style="font-weight: bold; color: #38bdf8; margin-bottom: 8px; border-bottom: 1px solid #1e293b; padding-bottom: 4px;">${seqLabels[dir]}</div>
-                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;">
-                    <span style="color: #e2e8f0; font-weight: bold;">♠</span>
-                    <span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.S)}</span>
-                </div>
-                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;">
-                    <span style="color: #ef4444; font-weight: bold;">♥</span>
-                    <span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.H)}</span>
-                </div>
-                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;">
-                    <span style="color: #f59e0b; font-weight: bold;">♦</span>
-                    <span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.D)}</span>
-                </div>
-                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;">
-                    <span style="color: #e2e8f0; font-weight: bold;">♣</span>
-                    <span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.C)}</span>
-                </div>
+                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;"><span style="color: #e2e8f0; font-weight: bold;">♠</span><span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.S)}</span></div>
+                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;"><span style="color: #ef4444; font-weight: bold;">♥</span><span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.H)}</span></div>
+                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;"><span style="color: #f59e0b; font-weight: bold;">♦</span><span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.D)}</span></div>
+                <div style="margin: 4px 0; font-family: monospace; font-size: 0.95rem;"><span style="color: #e2e8f0; font-weight: bold;">♣</span><span style="color: #f8fafc; margin-left: 6px;">${formatCards(hand.C)}</span></div>
             </div>
         `;
     }
@@ -154,7 +249,7 @@ function getHandsFromEditor() {
     return hands;
 }
 
-// 4. 52 KART DOĞRULAMA
+// 7. 52 KART DOĞRULAMA
 function validateDeck(hands) {
     const foundCards = [];
     const duplicates = [];
@@ -166,11 +261,8 @@ function validateDeck(hands) {
             for (let char of cardsStr) {
                 const card = s + char;
                 totalCount++;
-                if (foundCards.includes(card)) {
-                    duplicates.push(card);
-                } else {
-                    foundCards.push(card);
-                }
+                if (foundCards.includes(card)) duplicates.push(card);
+                else foundCards.push(card);
             }
         });
     });
@@ -179,11 +271,13 @@ function validateDeck(hands) {
     const statusEl = document.getElementById("deck-validation-status");
 
     if (totalCount === 52 && duplicates.length === 0 && missingCount === 0) {
-        statusEl.className = "status-banner status-success";
+        statusEl.style.background = "#065f46";
+        statusEl.style.color = "#a7f3d0";
         statusEl.textContent = "✅ Tebrikler! 52 kart eksiksiz ve mükerrersiz doğrulandı.";
         return true;
     } else {
-        statusEl.className = "status-banner status-info";
+        statusEl.style.background = "#78350f";
+        statusEl.style.color = "#fde68a";
         let msg = `⚠️ Kart Sayısı: ${totalCount}/52. `;
         if (duplicates.length > 0) msg += `Mükerrer: [${duplicates.join(", ")}] `;
         if (missingCount > 0) msg += `Eksik: ${missingCount}`;
@@ -192,7 +286,7 @@ function validateDeck(hands) {
     }
 }
 
-// 5. PBN OLUŞTURMA VE HAFIZA
+// 8. PBN VE HAFIZA GÜNCELLEME
 function validateAndUpdatePbn() {
     const hands = getHandsFromEditor();
     validateDeck(hands);
@@ -226,14 +320,12 @@ function buildPbnString(boardNo, hands) {
 `;
 }
 
-let tournamentBoards = JSON.parse(localStorage.getItem("bridge_tournament_boards") || "{}");
-
 function saveBoardToMemory(boardNo, hands, pbn) {
     tournamentBoards[boardNo] = { hands, pbn };
     localStorage.setItem("bridge_tournament_boards", JSON.stringify(tournamentBoards));
 }
 
-// 6. 4 YÖNÜN GÖRSELİNİ TEK DOSYA OLARAK İNDİRME
+// 9. 4 YÖN GÖRSELİNİ TEK DOSYA OLARAK İNDİRME
 function downloadFourDirectionsImage() {
     const boardNo = document.getElementById("board-number").value;
     const hands = getHandsFromEditor();
@@ -266,7 +358,8 @@ function downloadFourDirectionsImage() {
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.roundRect(pos.x - 170, pos.y - 15, 340, 140, 8);
+        if (ctx.roundRect) ctx.roundRect(pos.x - 170, pos.y - 15, 340, 140, 8);
+        else ctx.rect(pos.x - 170, pos.y - 15, 340, 140);
         ctx.fill();
         ctx.stroke();
 
@@ -297,13 +390,15 @@ function downloadFourDirectionsImage() {
     downloadFile(`Board_${boardNo}_Eller.png`, dataUrl, true);
 }
 
-// 7. TOPLU PBN BİRLEŞTİRİCİ
+// 10. TOPLU PBN BİRLEŞTİRİCİ
 async function handlePbnBatchMerge(event) {
     const files = Array.from(event.target.files);
     const statusDiv = document.getElementById('mergeStatus');
     if (files.length === 0) return;
 
     statusDiv.style.display = 'block';
+    statusDiv.style.background = '#1e3a8a';
+    statusDiv.style.color = '#93c5fd';
     statusDiv.textContent = `${files.length} dosya birleştiriliyor...`;
 
     let fileContents = [];
@@ -328,16 +423,10 @@ async function handlePbnBatchMerge(event) {
     const todayStr = new Date().toISOString().split('T')[0];
     const mergedFileName = `${todayStr}_Turnuva_Birlesik.pbn`;
 
-    const blob = new Blob([combinedText], { type: 'application/octet-stream;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = mergedFileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadFile(mergedFileName, combinedText, false);
 
+    statusDiv.style.background = '#065f46';
+    statusDiv.style.color = '#a7f3d0';
     statusDiv.textContent = `✅ Başarıyla ${fileContents.length} bord birleştirildi ve indirildi!`;
     event.target.value = '';
 }
@@ -345,9 +434,7 @@ async function handlePbnBatchMerge(event) {
 function initPbnControls() {
     document.getElementById("btn-copy-pbn")?.addEventListener("click", () => {
         const pbnText = document.getElementById("pbn-output").value;
-        navigator.clipboard.writeText(pbnText).then(() => {
-            alert("PBN panoya kopyalandı!");
-        });
+        navigator.clipboard.writeText(pbnText).then(() => alert("PBN panoya kopyalandı!"));
     });
 
     document.getElementById("btn-download-pbn")?.addEventListener("click", () => {
@@ -367,9 +454,7 @@ function initPbnControls() {
             return;
         }
         let fullPbn = "";
-        keys.forEach(k => {
-            fullPbn += tournamentBoards[k].pbn + "\n\n";
-        });
+        keys.forEach(k => { fullPbn += tournamentBoards[k].pbn + "\n\n"; });
         downloadFile(`Tournament_All_Boards.pbn`, fullPbn);
     });
 
