@@ -36,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // HTML'deki 'btn-analyze' ID'li analize başlama butonunu bağlama
     const analyzeBtn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', processBoard);
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     populateBoardDropdown();
     updateSeqButtonState();
-    checkCanAnalyze();
 });
 
 function switchMode(mode) {
@@ -58,8 +56,6 @@ function switchMode(mode) {
     const areaSingle = document.getElementById('modeSingleTableArea');
     if (area4) area4.style.display = mode === '4photos' ? 'block' : 'none';
     if (areaSingle) areaSingle.style.display = mode === 'singleTable' ? 'block' : 'none';
-
-    checkCanAnalyze();
 }
 
 function toggleApiKeyPanel() {
@@ -141,16 +137,6 @@ function setHandImage(dir, file) {
     if (card) {
         card.classList.add('has-image');
     }
-    checkCanAnalyze();
-}
-
-function checkCanAnalyze() {
-    const btn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
-    if (!btn) return;
-
-    // HTML'de kilitli (disabled) kalan butonun kilidini kaldırır
-    btn.removeAttribute('disabled');
-    btn.disabled = false;
 }
 
 function detectDirectionFromFileName(fileName) {
@@ -191,7 +177,6 @@ function handleBatchFileSelect(event) {
     resetDropdownSelectors();
     currentSeqIndex = 4;
     updateSeqButtonState();
-    checkCanAnalyze();
 }
 
 function resetDropdownSelectors() {
@@ -270,7 +255,6 @@ function handleSeqCameraSelect(event) {
     setHandImage(seqDirections[currentSeqIndex], file);
     currentSeqIndex++;
     updateSeqButtonState();
-    checkCanAnalyze();
     event.target.value = '';
 }
 
@@ -311,7 +295,6 @@ function resetSeqFlow() {
     });
     resetDropdownSelectors();
     updateSeqButtonState();
-    checkCanAnalyze();
 }
 
 function triggerSingleUpload(dir) {
@@ -335,7 +318,6 @@ function handleSingleTableSelect(event) {
         img.src = URL.createObjectURL(file);
         img.style.display = 'block';
     }
-    checkCanAnalyze();
     event.target.value = '';
 }
 
@@ -378,16 +360,6 @@ async function processBoard() {
         return;
     }
 
-    // if (activeMode === '4photos' && (!handFiles.N || !handFiles.E || !handFiles.S || !handFiles.W)) {
-    //     alert("Lütfen 4 el fotoğrafını da tamamlayın!");
-    //     return;
-    // }
-
-    if (activeMode === 'singleTable' && !singleTableFile) {
-        alert("Lütfen masanın tek kare fotoğrafını seçin veya çekin!");
-        return;
-    }
-
     const btn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
     const status = document.getElementById('status');
     const resultPanel = document.getElementById('results-panel');
@@ -400,11 +372,33 @@ async function processBoard() {
         let partsPayload = [];
 
         if (activeMode === '4photos') {
-            if (status) status.innerText = "1/2 📷 Fotoğraflar Paketleniyor...";
-            const base64N = await fileToBase64(handFiles.N);
-            const base64E = await fileToBase64(handFiles.E);
-            const base64S = await fileToBase64(handFiles.S);
-            const base64W = await fileToBase64(handFiles.W);
+            let base64N = null, base64E = null, base64S = null, base64W = null;
+
+            // 1. Manuel/Sıralı Fotoğraf Yüklemesi Kontrolü (handFiles)
+            if (handFiles.N && handFiles.E && handFiles.S && handFiles.W) {
+                if (status) status.innerText = "1/2 📷 Fotoğraflar Paketleniyor...";
+                base64N = await fileToBase64(handFiles.N);
+                base64E = await fileToBase64(handFiles.E);
+                base64S = await fileToBase64(handFiles.S);
+                base64W = await fileToBase64(handFiles.W);
+            }
+            // 2. Kadraj Kırpma Modülü Kontrolü (cropscript.js)
+            else if (typeof getCroppedImagesPayload === 'function' && typeof activeNorthIndex !== 'undefined' && activeNorthIndex !== null) {
+                if (status) status.innerText = "1/2 ✂️ Kırpılan Kadrajlar Paketleniyor...";
+                const croppedDataUrls = getCroppedImagesPayload();
+                if (croppedDataUrls && croppedDataUrls.length === 4) {
+                    base64N = croppedDataUrls[0].split(',')[1];
+                    base64E = croppedDataUrls[1].split(',')[1];
+                    base64S = croppedDataUrls[2].split(',')[1];
+                    base64W = croppedDataUrls[3].split(',')[1];
+                }
+            }
+
+            if (!base64N || !base64E || !base64S || !base64W) {
+                alert("Lütfen 4 el fotoğrafını tamamlayın veya Kadraj Modülünde Kuzey (N) yönünü seçin!");
+                if (btn) btn.disabled = false;
+                return;
+            }
 
             partsPayload = [
                 { text: typeof promptText !== 'undefined' ? promptText : "" },
@@ -418,6 +412,11 @@ async function processBoard() {
                 { inline_data: { mime_type: "image/jpeg", data: base64W } }
             ];
         } else {
+            if (!singleTableFile) {
+                alert("Lütfen masanın tek kare fotoğrafını seçin veya çekin!");
+                if (btn) btn.disabled = false;
+                return;
+            }
             if (status) status.innerText = "1/2 🖼️ Masa Fotoğrafı Hazırlanıyor...";
             const base64Table = await fileToBase64(singleTableFile);
 
