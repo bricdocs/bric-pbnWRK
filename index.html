@@ -10,7 +10,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Bridge Board Digitizer <span class="badge">v2.0 Entegre</span></h1>
+            <h1>Bridge Board Digitizer <span class="badge">v2.1 Entegre</span></h1>
             <p class="subtitle">Tek Fotoğraftan Dinamik Kadrajlama ve Gemini AI Analizi</p>
         </header>
 
@@ -39,74 +39,82 @@
             </div>
         </div>
 
-        <!-- 3. DİNAMİK KADRAJLAMA VE GÖRSEL YÜKLEME ALANI (crop.html Entegrasyonu) -->
+        <!-- 3. DİNAMİK KADRAJLAMA VE GÖRSEL YÜKLEME ALANI -->
         <div class="panel">
+            <!-- Dosya Yükleme Alanı -->
             <div class="upload-area" id="single-upload-area" onclick="document.getElementById('board-image-input').click()">
                 <span class="btn-upload">📷 Bord Fotoğrafı Yükle veya Çek</span>
                 <span class="upload-hint">Tek kare masa/bord fotoğrafı seçin</span>
-                <input type="file" id="board-image-input" accept="image/*" style="display: none;">
+                <input type="file" id="board-image-input" accept="image/*" onchange="handleImageUpload(event)" style="display: none;">
             </div>
 
-            <!-- KONTROL SLIDERLARI -->
-            <div class="controls-card" id="crop-controls-panel" style="display: none;">
+            <!-- UYARI BANNERI -->
+            <div class="status-banner status-info" id="statusBanner" style="display: none;">
+                ⚠️ Lütfen Kuzey (N) olan kutunun altındaki <strong>"🧭 Bu Kutu Kuzey (N)"</strong> butonuna tıklayın.
+            </div>
+
+            <!-- MANUEL SLIDER PANELİ -->
+            <div class="controls-card" id="controlsCard" style="display: none;">
                 <h3>Dinamik Kadraj Ayarları</h3>
                 <div class="grid-controls">
                     <div class="control-group">
-                        <label>Dikey Ofset (Y) <span class="val-badge" id="val-offsetY">0px</span></label>
-                        <input type="range" id="slider-offsetY" min="-150" max="150" value="0">
+                        <label>Üst Kesim (Top) <span class="val-badge" id="valTop">30%</span></label>
+                        <input type="range" id="sliderTop" min="10" max="50" value="30" oninput="updateCrops()">
                     </div>
                     <div class="control-group">
-                        <label>Yatay Ofset (X) <span class="val-badge" id="val-offsetX">0px</span></label>
-                        <input type="range" id="slider-offsetX" min="-150" max="150" value="0">
+                        <label>Alt Kesim (Bottom) <span class="val-badge" id="valBottom">30%</span></label>
+                        <input type="range" id="sliderBottom" min="10" max="50" value="30" oninput="updateCrops()">
                     </div>
                     <div class="control-group">
-                        <label>Ölçek (Scale) <span class="val-badge" id="val-scale">1.0x</span></label>
-                        <input type="range" id="slider-scale" min="0.5" max="1.5" step="0.05" value="1.0">
+                        <label>Sol Kesim (Left) <span class="val-badge" id="valLeft">30%</span></label>
+                        <input type="range" id="sliderLeft" min="10" max="50" value="30" oninput="updateCrops()">
                     </div>
                     <div class="control-group">
-                        <label>Kutu Boyutu <span class="val-badge" id="val-boxSize">280px</span></label>
-                        <input type="range" id="slider-boxSize" min="150" max="400" value="280">
+                        <label>Sağ Kesim (Right) <span class="val-badge" id="valRight">30%</span></label>
+                        <input type="range" id="sliderRight" min="10" max="50" value="30" oninput="updateCrops()">
                     </div>
                 </div>
             </div>
 
             <!-- 4 BÖLGELİ KADRAJ MASA DÜZENİ -->
-            <div id="crop-grid-container" style="display: none;">
-                <div class="table-grid">
-                    <!-- ÜST BÖLGE (Bölge 1) -->
-                    <div class="crop-card" id="card-region-1">
-                        <span class="region-label">Üst Bölge (Kutu 1)</span>
-                        <span class="dir-badge unassigned" id="badge-region-1">Atanmadı</span>
-                        <canvas id="canvas-region-1" class="crop-preview-img"></canvas>
-                        <button class="btn-set-north" onclick="setNorthRegion(1)">🧭 Bu Kutu Kuzey</button>
-                    </div>
+            <div class="table-grid" id="tableGrid" style="display: none;">
+                <!-- ÜST BÖLGE (Box 0) -->
+                <div class="crop-card" id="cropCard-0">
+                    <span class="region-label">Üst Bölge (Box 0)</span>
+                    <span class="dir-badge unassigned" id="cropBadge-0">Seçilmedi</span>
+                    <img id="cropPrev-0" class="crop-preview-img" alt="Üst Bölge">
+                    <button class="btn-set-north" onclick="setNorthPosition(0)">🧭 Bu Kutu Kuzey (N)</button>
+                </div>
 
-                    <!-- ORTA SATIR (Bölge 4 ve Bölge 2) -->
-                    <div class="grid-middle-row">
-                        <div class="crop-card" id="card-region-4">
-                            <span class="region-label">Sol Bölge (Kutu 4)</span>
-                            <span class="dir-badge unassigned" id="badge-region-4">Atanmadı</span>
-                            <canvas id="canvas-region-4" class="crop-preview-img"></canvas>
-                            <button class="btn-set-north" onclick="setNorthRegion(4)">🧭 Bu Kutu Kuzey</button>
-                        </div>
-                        <div class="crop-card" id="card-region-2">
-                            <span class="region-label">Sağ Bölge (Kutu 2)</span>
-                            <span class="dir-badge unassigned" id="badge-region-2">Atanmadı</span>
-                            <canvas id="canvas-region-2" class="crop-preview-img"></canvas>
-                            <button class="btn-set-north" onclick="setNorthRegion(2)">🧭 Bu Kutu Kuzey</button>
-                        </div>
+                <!-- ORTA SATIR (Box 3: Sol, Box 1: Sağ) -->
+                <div class="grid-middle-row">
+                    <div class="crop-card" id="cropCard-3">
+                        <span class="region-label">Sol Bölge (Box 3)</span>
+                        <span class="dir-badge unassigned" id="cropBadge-3">Seçilmedi</span>
+                        <img id="cropPrev-3" class="crop-preview-img" alt="Sol Bölge">
+                        <button class="btn-set-north" onclick="setNorthPosition(3)">🧭 Bu Kutu Kuzey (N)</button>
                     </div>
-
-                    <!-- ALT BÖLGE (Bölge 3) -->
-                    <div class="crop-card" id="card-region-3">
-                        <span class="region-label">Alt Bölge (Kutu 3)</span>
-                        <span class="dir-badge unassigned" id="badge-region-3">Atanmadı</span>
-                        <canvas id="canvas-region-3" class="crop-preview-img"></canvas>
-                        <button class="btn-set-north" onclick="setNorthRegion(3)">🧭 Bu Kutu Kuzey</button>
+                    <div class="crop-card" id="cropCard-1">
+                        <span class="region-label">Sağ Bölge (Box 1)</span>
+                        <span class="dir-badge unassigned" id="cropBadge-1">Seçilmedi</span>
+                        <img id="cropPrev-1" class="crop-preview-img" alt="Sağ Bölge">
+                        <button class="btn-set-north" onclick="setNorthPosition(1)">🧭 Bu Kutu Kuzey (N)</button>
                     </div>
                 </div>
 
-                <button class="btn btn-success btn-large" id="btn-analyze" disabled>🤖 Gemini ile Analiz Et ve Kartları Oku</button>
+                <!-- ALT BÖLGE (Box 2) -->
+                <div class="crop-card" id="cropCard-2">
+                    <span class="region-label">Alt Bölge (Box 2)</span>
+                    <span class="dir-badge unassigned" id="cropBadge-2">Seçilmedi</span>
+                    <img id="cropPrev-2" class="crop-preview-img" alt="Alt Bölge">
+                    <button class="btn-set-north" onclick="setNorthPosition(2)">🧭 Bu Kutu Kuzey (N)</button>
+                </div>
+
+                <!-- ANALİZ VE İNDİRME BUTONLARI -->
+                <div style="width: 100%; margin-top: 15px;">
+                    <button class="btn btn-success btn-large" id="btn-analyze" disabled>🤖 Gemini ile Analiz Et ve Kartları Oku</button>
+                    <button class="btn" id="btnDownload" disabled style="display: none; width: 100%; margin-top: 8px;" onclick="downloadAllCrops()">⬇️ 4 Bölgeyi de İndir (Tüm Yönler)</button>
+                </div>
             </div>
         </div>
 
@@ -116,9 +124,7 @@
             <div id="deck-validation-status" class="status-banner" style="margin-top: 10px;"></div>
 
             <!-- Kart Editör Tablosu -->
-            <div id="hands-editor-container" style="margin-top: 15px; overflow-x: auto;">
-                <!-- JS tarafından N, E, S, W ellerinin düzenlenebilir alanları oluşturulacak -->
-            </div>
+            <div id="hands-editor-container" style="margin-top: 15px; overflow-x: auto;"></div>
         </div>
 
         <!-- 5. PBN ÇIKTI VE TOPLU BİRLEŞTİRİCİ MODÜLÜ -->
@@ -132,7 +138,6 @@
                 <button class="btn btn-success" id="btn-download-pbn">💾 Mevcut PBN İndir</button>
             </div>
 
-            <!-- Toplu PBN Birleştirici -->
             <hr style="border-color: #334155; margin: 20px 0;">
             <h4>Turnuva Toplu PBN İçe/Dışa Aktarma</h4>
             <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
@@ -140,9 +145,6 @@
             </div>
         </div>
     </div>
-
-    <!-- Gizli Tam Resim Canvas İşleyici -->
-    <canvas id="hidden-source-canvas" style="display: none;"></canvas>
 
     <script src="prompts.js"></script>
     <script src="cropscript.js"></script>
