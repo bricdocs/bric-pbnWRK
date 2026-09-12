@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
+    <title>Briç PBN Dijitalleştirici v1.38</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="cropstyle.css">
+    <script src="script.js"></script>
+    <script src="cropscript.js"></script>
+    <script src="prompts.js"></script>
+</head>
+<body>
+
+    <h1>Briç PBN Dijitalleştirici <span class="version-tag">v1.38</span></h1>
+
+    <!-- TURNUVA YÖNETİMİ / SIFIRLAMA PANELİ VE KIRPMA ARACI BUTONU -->
+    <div class="panel" style="background: #fff1f2; border-color: #fecdd3;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <strong>Turnuva Yönetimi:</strong>
+                <div style="font-size: 0.78rem; color: #881337; margin-top: 2px;">Tamamlanan bord hafızasını sıfırlamak ve yeni turnuvaya başlamak için tıklayın.</div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <a href="crop.html" target="_blank" style="background: #0284c7; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">✂️ Fotoğraf Kırpma Aracını Aç (Yeni Sekme)</a>
+                <button onclick="resetTournamentHistory()" style="background: #e11d48; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">🔄 Yeni Turnuva Başlat (Sıfırla)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ayarlar Paneli (API Key Accordion) -->
+    <div class="panel">
+        <div class="api-accordion-header" onclick="toggleApiKeyPanel()">
+            <span>🔑 Gemini API Ayarları</span>
+            <span id="apiKeyStatusBadge" class="version-tag">Durum Kontrol Ediliyor...</span>
+        </div>
+        <div id="apiKeyContent" class="field-group" style="display: none;">
+            <label for="apiKey">Gemini API Key</label>
+            <input type="password" id="apiKey" placeholder="API Key giriniz..." onchange="saveApiKey()">
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">
+                Aktif Model: <strong>gemini-3.6-flash</strong>. API Key tarayıcınızda saklanır.
+            </div>
+        </div>
+    </div>
+
+    <!-- Bord Seçim Paneli -->
+    <div class="panel">
+        <div class="field-group">
+            <label for="boardNo">Bord Numarası</label>
+            <select id="boardNo" onchange="checkSelectedBoardStatus()">
+                <!-- Dinamik doldurulacak (1 - 32) -->
+            </select>
+            <div id="boardWarning" style="font-size: 0.8rem; color: #d97706; margin-top: 4px; display: none;"></div>
+        </div>
+    </div>
+
+    <!-- MOD SEÇİCİ SEKMELER -->
+    <div class="mode-tabs">
+        <button id="tab4Photos" class="tab-btn active" onclick="switchMode('4photos')">📂 4 Ayrı El Çekimi (Klasik Mod)</button>
+        <button id="tabSingleTable" class="tab-btn" onclick="switchMode('singleTable')">🖼️ Tek Kare Masa (Dinamik Bord)</button>
+    </div>
+
+    <!-- MOD 1: 4 AYRI GÖRSEL İLE ÇEKİM -->
+    <div id="mode4PhotosArea">
+        <div class="upload-options">
+            <div class="upload-box">
+                <label for="file-batch" class="btn-upload">
+                    📂 Galeriden 4 Fotoğraf Seç
+                </label>
+                <input type="file" id="file-batch" accept="image/*" multiple style="display:none;" onchange="handleBatchFileSelect(event)">
+                <div class="upload-desc">Dosya isimlerinden (NORTH, EAST vb.) yönler otomatik algılanır.</div>
+            </div>
+
+            <div class="upload-box sequential">
+                <button id="btnSeqCamera" class="btn-upload seq-btn" onclick="triggerSeqCamera()">
+                    📸 Sırayla Çek: Kuzey (1/4)
+                </button>
+                <input type="file" id="seqCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleSeqCameraSelect(event)">
+                <div id="seqDesc" class="upload-desc">Tek butonla N &rarr; E &rarr; S &rarr; W sırasıyla canlı çekim.</div>
+                <span id="resetSeqBtn" class="reset-link" onclick="resetSeqFlow()">Sıralı çekimi sıfırla</span>
+            </div>
+        </div>
+
+        <input type="file" id="singleFileInput" accept="image/*" style="display:none;" onchange="handleSingleFileSelect(event)">
+
+        <!-- 4 El Önizleme VE Yön Atama Paneli -->
+        <div class="hands-grid">
+            <div class="hand-card" id="card-N">
+                <div class="hand-label" onclick="triggerSingleUpload('N')" style="cursor:pointer;">Kuzey (N) 📷</div>
+                <img id="preview-N" class="preview-img" alt="Kuzey" onclick="triggerSingleUpload('N')">
+                <div style="margin-top: 8px; font-size: 0.78rem;">
+                    <label style="display:block; margin-bottom: 2px; color: #475569;">Atanan Yön:</label>
+                    <select id="select-dir-N" class="dir-select" onchange="handleDirSelectChange('N', this.value)" style="width: 100%; padding: 4px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                        <option value="N" selected>Kuzey (N)</option>
+                        <option value="E">Doğu (E)</option>
+                        <option value="S">Güney (S)</option>
+                        <option value="W">Batı (W)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="hand-card" id="card-E">
+                <div class="hand-label" onclick="triggerSingleUpload('E')" style="cursor:pointer;">Doğu (E) 📷</div>
+                <img id="preview-E" class="preview-img" alt="Doğu" onclick="triggerSingleUpload('E')">
+                <div style="margin-top: 8px; font-size: 0.78rem;">
+                    <label style="display:block; margin-bottom: 2px; color: #475569;">Atanan Yön:</label>
+                    <select id="select-dir-E" class="dir-select" onchange="handleDirSelectChange('E', this.value)" style="width: 100%; padding: 4px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                        <option value="N">Kuzey (N)</option>
+                        <option value="E" selected>Doğu (E)</option>
+                        <option value="S">Güney (S)</option>
+                        <option value="W">Batı (W)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="hand-card" id="card-S">
+                <div class="hand-label" onclick="triggerSingleUpload('S')" style="cursor:pointer;">Güney (S) 📷</div>
+                <img id="preview-S" class="preview-img" alt="Güney" onclick="triggerSingleUpload('S')">
+                <div style="margin-top: 8px; font-size: 0.78rem;">
+                    <label style="display:block; margin-bottom: 2px; color: #475569;">Atanan Yön:</label>
+                    <select id="select-dir-S" class="dir-select" onchange="handleDirSelectChange('S', this.value)" style="width: 100%; padding: 4px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                        <option value="N">Kuzey (N)</option>
+                        <option value="E">Doğu (E)</option>
+                        <option value="S" selected>Güney (S)</option>
+                        <option value="W">Batı (W)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="hand-card" id="card-W">
+                <div class="hand-label" onclick="triggerSingleUpload('W')" style="cursor:pointer;">Batı (W) 📷</div>
+                <img id="preview-W" class="preview-img" alt="Batı" onclick="triggerSingleUpload('W')">
+                <div style="margin-top: 8px; font-size: 0.78rem;">
+                    <label style="display:block; margin-bottom: 2px; color: #475569;">Atanan Yön:</label>
+                    <select id="select-dir-W" class="dir-select" onchange="handleDirSelectChange('W', this.value)" style="width: 100%; padding: 4px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                        <option value="N">Kuzey (N)</option>
+                        <option value="E">Doğu (E)</option>
+                        <option value="S">Güney (S)</option>
+                        <option value="W" selected>Batı (W)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MOD 2: TEK KARE MASA VE DİNAMİK BORD OKUMA -->
+    <div id="modeSingleTableArea" style="display: none;">
+        <div class="upload-box" style="background: #faf5ff; border-color: #a855f7; padding: 20px;">
+            
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <label for="singleTableCameraInput" class="btn-upload" style="background: #9333ea; flex: 1; min-width: 140px; margin: 0;">
+                    📸 Kameradan Çek
+                </label>
+                <input type="file" id="singleTableCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleSingleTableSelect(event)">
+
+                <label for="singleTableGalleryInput" class="btn-upload" style="background: #6b21a8; flex: 1; min-width: 140px; margin: 0;">
+                    📂 Galeriden Seç
+                </label>
+                <input type="file" id="singleTableGalleryInput" accept="image/*" style="display:none;" onchange="handleSingleTableSelect(event)">
+            </div>
+
+            <div class="upload-desc" style="margin-top: 12px; font-size: 0.85rem; color: #581c87;">
+                Masanın ortasındaki plastik briç kutusunu (board tray) ve 4 eldeki tüm kartları kapsayan tek bir fotoğraf seçin veya çekin.
+            </div>
+            <img id="previewSingleTable" class="single-table-preview" alt="Masa Görseli">
+        </div>
+    </div>
+
+    <button id="btnProcess" class="btn-main" onclick="processBoard()" style="margin-top: 15px;">⚡ Bordu Çöz ve PBN Oluştur</button>
+    <div id="status" class="status-box"></div>
+
+    <!-- Sonuç Paneli -->
+    <div class="panel" id="resultPanel" style="display: none;">
+        <div id="validationBox" class="validation-report"></div>
+        
+        <label>Üretilen PBN Metni (Doğrudan düzenlenebilir):</label>
+        <textarea id="pbnOutput"></textarea>
+        
+        <div class="action-row">
+            <button class="btn-action btn-copy" onclick="copyPbn()">📋 PBN'i Kopyala</button>
+            <button class="btn-action btn-download-single" onclick="downloadSinglePbn()">💾 Bord PBN ve Arşiv İndir</button>
+        </div>
+
+        <div class="inspector-title">🔍 Hızlı Kontrol - Briç Eli Görünümü</div>
+        <div class="inspector-grid" id="handsInspector"></div>
+    </div>
+
+    <!-- PBN BİRLEŞTİRİCİ (TURNUVA MODÜLÜ) -->
+    <div class="merger-panel">
+        <div class="merger-title">📚 Toplu PBN Birleştirici (Turnuva Modu)</div>
+        <div class="upload-desc" style="margin-bottom: 10px; text-align: left; color: #581c87;">
+            Daha önce kaydettiğiniz .pbn dosyalarını toplu seçerek tek bir turnuva dosyasında birleştirebilirsiniz.
+        </div>
+        <label for="mergeFileInput" class="btn-merge-select">
+            📁 PBN Dosyalarını Seç ve Birleştir
+        </label>
+        <input type="file" id="mergeFileInput" accept=".pbn" multiple style="display:none;" onchange="handlePbnBatchMerge(event)">
+        <div id="mergeStatus" class="status-box" style="margin-top: 8px; color: #7e22ce;"></div>
+    </div>
+
+</body>
+</html>
