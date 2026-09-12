@@ -2,10 +2,6 @@
 // script2.js - Bridge Board Digitizer: Editor, Validation & PBN v2.2
 // ============================================================
 
-if (typeof SUITS === 'undefined') var SUITS = ['S', 'H', 'D', 'C'];
-if (typeof PLAYERS === 'undefined') var PLAYERS = ['N', 'E', 'S', 'W'];
-if (typeof seqLabels === 'undefined') var seqLabels = { N: 'Kuzey (N)', E: 'Doğu (E)', S: 'Güney (S)', W: 'Batı (W)' };
-
 document.addEventListener("DOMContentLoaded", () => {
     initApiKeyControls();
     initPbnControls();
