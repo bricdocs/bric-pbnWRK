@@ -14,21 +14,21 @@
         </header>
 
         <!-- API KEY PANELİ -->
-        <div class="panel" style="background: #1e293b; border: 1px solid #334155; margin-bottom: 20px;">
+        <div class="panel" style="background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
             <h3 style="color: #38bdf8; font-size: 1rem; margin-bottom: 8px;">🔑 Gemini API Key</h3>
             <div style="display: flex; gap: 10px; align-items: center;">
-                <input type="password" id="apiKeyInput" placeholder="Gemini API Key'inizi girin..." style="flex-grow: 1;">
-                <button class="btn" id="btn-save-key" style="background: #10b981;">Kaydet</button>
+                <input type="password" id="apiKeyInput" placeholder="Gemini API Key'inizi girin..." style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+                <button id="btn-save-key" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">Kaydet</button>
             </div>
         </div>
 
         <!-- 1. KONTROL VE YÜKLEME PANELİ -->
-        <div class="panel">
-            <h3>1. Bord ve Fotoğraf Seçimi</h3>
-            <div class="flex-row" style="margin-top: 15px;">
+        <div class="panel" style="background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 10px;">1. Bord ve Fotoğraf Seçimi</h3>
+            <div style="display: flex; gap: 15px; align-items: flex-end; margin-top: 10px;">
                 <div>
                     <label for="board-number" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px;">Bord No:</label>
-                    <input type="number" id="board-number" value="1" min="1" max="99" style="width: 80px;">
+                    <input type="number" id="board-number" value="1" min="1" max="99" style="width: 80px; padding: 8px; border-radius: 4px; border: 1px solid #334155; background: #0f172a; color: #fff;">
                 </div>
                 <div style="flex-grow: 1;">
                     <label for="imageInput" style="display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 4px;">Bord Fotoğrafı:</label>
@@ -37,66 +37,58 @@
             </div>
         </div>
 
-        <!-- 2. GÖRSEL KIRPMA / ÖNİZLEME ALANI -->
-        <div class="panel" id="crop-panel">
-            <h3>2. Görüntü Hizalama ve Kırpma</h3>
-            <div style="margin-top: 15px; text-align: center; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px dashed #334155; min-height: 150px; display: flex; align-items: center; justify-content: center;">
+        <!-- 2. GÖRSEL ÖNİZLEME ALANI -->
+        <div class="panel" id="crop-panel" style="background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 10px;">2. Görüntü Önizleme ve Analiz</h3>
+            <div style="margin-top: 10px; text-align: center; background: #0f172a; padding: 15px; border-radius: 8px; border: 1px dashed #334155; min-height: 150px; display: flex; align-items: center; justify-content: center;">
                 <div id="crop-container" style="max-width: 100%; overflow: hidden;">
                     <canvas id="cropCanvas" style="max-width: 100%; height: auto; display: none;"></canvas>
                     <p id="crop-placeholder" style="color: #64748b;">Henüz fotoğraf yüklenmedi.</p>
                 </div>
             </div>
-            <div style="margin-top: 15px; display: flex; gap: 10px;">
-                <button class="btn" id="btn-analyze" style="background: #8b5cf6;">🚀 Yapay Zeka ile Analiz Et</button>
+            <div style="margin-top: 15px;">
+                <button id="btn-analyze" style="background: #8b5cf6; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 1rem;">🚀 Yapay Zeka ile Analiz Et</button>
             </div>
         </div>
 
-        <!-- 3. ANALİZ SONUÇLARI VE 52 KART DOĞRULAMA MODÜLÜ -->
-        <div class="panel" id="results-panel" style="display: none;">
-            <h3>3. Analiz Sonuçları ve Kart Düzenleme</h3>
-            <div id="deck-validation-status" class="status-banner" style="margin-top: 10px;"></div>
-
-            <!-- Kart Editör Tablosu -->
+        <!-- 3. ANALİZ SONUÇLARI VE KART DÜZENLEME -->
+        <div class="panel" id="results-panel" style="display: none; background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 10px;">3. Analiz Sonuçları ve Kart Düzenleme</h3>
+            <div id="deck-validation-status" class="status-banner" style="margin-top: 10px; padding: 10px; border-radius: 4px; font-weight: bold;"></div>
             <div id="hands-editor-container" style="margin-top: 15px; overflow-x: auto;"></div>
         </div>
 
         <!-- 4. HIZLI KONTROL - GÖRSEL EL GÖRÜNÜMÜ -->
-        <div class="panel" id="inspectorPanel" style="display: none;">
+        <div class="panel" id="inspectorPanel" style="display: none; background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
             <div style="color: #38bdf8; font-weight: bold; margin-bottom: 12px; font-size: 1.05rem;">🔍 Hızlı Kontrol - Briç Eli Görünümü</div>
             <div id="handsInspector" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;"></div>
         </div>
 
         <!-- 5. PBN VE GÖRSEL DOSYA YÖNETİMİ -->
-        <div class="panel" id="pbn-panel" style="display: none;">
-            <h3>4. PBN ve Görsel Dosya Yönetimi</h3>
+        <div class="panel" id="pbn-panel" style="display: none; background: #1e293b; border: 1px solid #334155; margin-bottom: 20px; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #f8fafc; font-size: 1.1rem; margin-bottom: 10px;">4. PBN ve Görsel Dosya Yönetimi</h3>
             <div style="margin-bottom: 10px;">
                 <textarea id="pbn-output" readonly style="width: 100%; height: 120px; background: #0f172a; color: #38bdf8; font-family: monospace; padding: 10px; border-radius: 6px; border: 1px solid #334155;"></textarea>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn" id="btn-copy-pbn">📋 PBN Kopyala</button>
-                <button class="btn btn-success" id="btn-download-pbn">💾 Mevcut PBN İndir</button>
-                <button class="btn" id="btn-download-image" style="background: #0ea5e9;">🖼️ 4 Yön Görselini İndir</button>
-                <button class="btn" id="btn-export-all-pbn" style="background: #8b5cf6;">📦 Tüm Bordları Tek PBN Olarak İndir</button>
-                <button class="btn" id="btn-reset-memory" style="background: #ef4444;">🗑️ Hafızayı Sıfırla</button>
+                <button id="btn-copy-pbn" style="background: #334155; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">📋 PBN Kopyala</button>
+                <button id="btn-download-pbn" style="background: #10b981; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">💾 Mevcut PBN İndir</button>
+                <button id="btn-download-image" style="background: #0ea5e9; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">🖼️ 4 Yön Görselini İndir</button>
+                <button id="btn-export-all-pbn" style="background: #8b5cf6; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">📦 Tüm Bordları Tek PBN İndir</button>
+                <button id="btn-reset-memory" style="background: #ef4444; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer;">🗑️ Hafızayı Sıfırla</button>
             </div>
         </div>
 
-        <!-- 6. TOPLU PBN BİRLEŞTİRİCİ (TURNUVA MODÜLÜ) -->
-        <div class="panel" style="background: #1e293b; border: 1px solid #334155; margin-top: 20px;">
-            <h3 style="color: #c084fc;">📚 Toplu PBN Birleştirici (Turnuva Modu)</h3>
-            <p style="font-size: 0.85rem; color: #94a3b8; margin: 8px 0 12px 0;">
-                Daha önce kaydettiğiniz .pbn dosyalarını toplu seçerek tek bir turnuva dosyasında birleştirebilirsiniz.
-            </p>
-            <label for="mergeFileInput" class="btn" style="background: #7e22ce; display: inline-block; cursor: pointer; color: white; padding: 10px 16px; border-radius: 6px; font-weight: bold;">
-                📁 PBN Dosyalarını Seç ve Birleştir
-            </label>
+        <!-- 6. TOPLU PBN BİRLEŞTİRİCİ -->
+        <div class="panel" style="background: #1e293b; border: 1px solid #334155; padding: 15px; border-radius: 8px;">
+            <h3 style="color: #c084fc; font-size: 1.1rem; margin-bottom: 8px;">📚 Toplu PBN Birleştirici (Turnuva Modu)</h3>
+            <p style="font-size: 0.85rem; color: #94a3b8; margin: 8px 0 12px 0;">Daha önce kaydettiğiniz .pbn dosyalarını toplu seçerek tek bir turnuva dosyasında birleştirebilirsiniz.</p>
+            <label for="mergeFileInput" style="background: #7e22ce; display: inline-block; cursor: pointer; color: white; padding: 10px 16px; border-radius: 6px; font-weight: bold;">📁 PBN Dosyalarını Seç ve Birleştir</label>
             <input type="file" id="mergeFileInput" accept=".pbn" multiple style="display:none;">
-            <div id="mergeStatus" class="status-banner status-info" style="margin-top: 10px; display: none;"></div>
+            <div id="mergeStatus" style="margin-top: 10px; display: none; padding: 10px; border-radius: 4px; font-weight: bold;"></div>
         </div>
     </div>
 
-    <!-- Script Bağlantıları -->
-    <script src="script1.js"></script>
-    <script src="script2.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
