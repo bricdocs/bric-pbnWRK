@@ -2,13 +2,34 @@
 // script2.js - Bridge Board Digitizer: Editor, Validation & PBN v2.2
 // ============================================================
 
-const SUITS = ['S', 'H', 'D', 'C'];
-const PLAYERS = ['N', 'E', 'S', 'W'];
-const seqLabels = { N: 'Kuzey (N)', E: 'Doğu (E)', S: 'Güney (S)', W: 'Batı (W)' };
+if (typeof SUITS === 'undefined') var SUITS = ['S', 'H', 'D', 'C'];
+if (typeof PLAYERS === 'undefined') var PLAYERS = ['N', 'E', 'S', 'W'];
+if (typeof seqLabels === 'undefined') var seqLabels = { N: 'Kuzey (N)', E: 'Doğu (E)', S: 'Güney (S)', W: 'Batı (W)' };
 
 document.addEventListener("DOMContentLoaded", () => {
+    initApiKeyControls();
     initPbnControls();
 });
+
+// API Key Kontrolleri
+function initApiKeyControls() {
+    const keyInput = document.getElementById("apiKeyInput");
+    const saveBtn = document.getElementById("btn-save-key");
+    if (keyInput && localStorage.getItem("gemini_api_key")) {
+        keyInput.value = localStorage.getItem("gemini_api_key");
+    }
+    if (saveBtn && keyInput) {
+        saveBtn.addEventListener("click", () => {
+            const val = keyInput.value.trim();
+            if (val) {
+                localStorage.setItem("gemini_api_key", val);
+                alert("API Key kaydedildi!");
+            } else {
+                alert("Lütfen geçerli bir API Key girin.");
+            }
+        });
+    }
+}
 
 // 1. ANALİZ SONUCU GELDİĞİNDE PANEL VE EDİTÖRLERİ AÇMA
 function processAnalysisResult(hands) {
@@ -216,7 +237,7 @@ function saveBoardToMemory(boardNo, hands, pbn) {
     localStorage.setItem("bridge_tournament_boards", JSON.stringify(tournamentBoards));
 }
 
-// 6. 4 YÖNÜN GÖRSELİNİ TEK DOSYA OLARAK İNDİRME (CANVAS ÇİZİMİ)
+// 6. 4 YÖNÜN GÖRSELİNİ TEK DOSYA OLARAK İNDİRME
 function downloadFourDirectionsImage() {
     const boardNo = document.getElementById("board-number").value;
     const hands = getHandsFromEditor();
@@ -226,11 +247,9 @@ function downloadFourDirectionsImage() {
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
 
-    // Arka plan
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Başlık
     ctx.fillStyle = '#38bdf8';
     ctx.font = 'bold 24px sans-serif';
     ctx.textAlign = 'center';
@@ -247,7 +266,6 @@ function downloadFourDirectionsImage() {
         const pos = positions[dir];
         const hand = hands[dir] || {};
 
-        // Kutu arkaplanı
         ctx.fillStyle = '#1e293b';
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 2;
@@ -256,13 +274,11 @@ function downloadFourDirectionsImage() {
         ctx.fill();
         ctx.stroke();
 
-        // Yön başlığı
         ctx.fillStyle = '#38bdf8';
         ctx.font = 'bold 16px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(pos.label, pos.x, pos.y + 10);
 
-        // Kartlar (S, H, D, C)
         ctx.font = '15px monospace';
         ctx.textAlign = 'left';
         
