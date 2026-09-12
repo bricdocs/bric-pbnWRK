@@ -1,5 +1,5 @@
 // ============================================================
-// script1.js - Bridge Board Digitizer: API & Data Flow (v2.1)
+// script1.js - Bridge Board Digitizer: UI & Gemini Integration v2.1
 // ============================================================
 
 const COMPLETED_BOARDS_KEY = "bridge_completed_boards_v1";
@@ -330,6 +330,33 @@ function fileToBase64(file) {
     });
 }
 
+function getCroppedBase64Array() {
+    if (typeof getCroppedImagesPayload === 'function') {
+        const payload = getCroppedImagesPayload();
+        if (payload && payload.length === 4) {
+            return payload.map(item => item.includes(',') ? item.split(',')[1] : item);
+        }
+    }
+    
+    if (typeof boxCanvases !== 'undefined' && Array.isArray(boxCanvases) && boxCanvases.length === 4) {
+        return boxCanvases.map(canvas => {
+            if (canvas && canvas.toDataURL) {
+                return canvas.toDataURL('image/jpeg').split(',')[1];
+            }
+            return null;
+        });
+    }
+
+    const croppedCanvases = document.querySelectorAll('canvas.crop-box-canvas, .box-canvas, canvas[id^="cropCanvas"]');
+    if (croppedCanvases.length === 4) {
+        const list = [];
+        croppedCanvases.forEach(c => list.push(c.toDataURL('image/jpeg').split(',')[1]));
+        return list;
+    }
+
+    return null;
+}
+
 async function fetchWithRetry(url, options, maxRetries = 2, delayMs = 3000) {
     const statusBox = document.getElementById('status');
     for (let i = 0; i <= maxRetries; i++) {
@@ -363,7 +390,6 @@ async function processBoard() {
     const btn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
     const status = document.getElementById('status');
     const resultPanel = document.getElementById('results-panel');
-    const validationBox = document.getElementById('deck-validation-status');
 
     if (btn) btn.disabled = true;
     if (resultPanel) resultPanel.style.display = 'none';
@@ -374,29 +400,28 @@ async function processBoard() {
         if (activeMode === '4photos') {
             let base64N = null, base64E = null, base64S = null, base64W = null;
 
-            // 1. Manuel/Sıralı Fotoğraf Yüklemesi Kontrolü (handFiles)
             if (handFiles.N && handFiles.E && handFiles.S && handFiles.W) {
                 if (status) status.innerText = "1/2 📷 Fotoğraflar Paketleniyor...";
                 base64N = await fileToBase64(handFiles.N);
                 base64E = await fileToBase64(handFiles.E);
                 base64S = await fileToBase64(handFiles.S);
                 base64W = await fileToBase64(handFiles.W);
-            }
-            // 2. Kadraj Kırpma Modülü Kontrolü (cropscript.js)
-            else if (typeof getCroppedImagesPayload === 'function' && typeof activeNorthIndex !== 'undefined' && activeNorthIndex !== null) {
-                if (status) status.innerText = "1/2 ✂️ Kırpılan Kadrajlar Paketleniyor...";
-                const croppedDataUrls = getCroppedImagesPayload();
-                if (croppedDataUrls && croppedDataUrls.length === 4) {
-                    base64N = croppedDataUrls[0].split(',')[1];
-                    base64E = croppedDataUrls[1].split(',')[1];
-                    base64S = croppedDataUrls[2].split(',')[1];
-                    base64W = croppedDataUrls[3].split(',')[1];
+            } 
+            else {
+                if (status) status.innerText = "1/2 ✂️ Kadraj Verileri Alınıyor...";
+                const croppedList = getCroppedBase64Array();
+                if (croppedList && croppedList.length === 4 && croppedList.every(b => b !== null)) {
+                    base64N = croppedList[0];
+                    base64E = croppedList[1];
+                    base64S = croppedList[2];
+                    base64W = croppedList[3];
                 }
             }
 
             if (!base64N || !base64E || !base64S || !base64W) {
-                alert("Lütfen 4 el fotoğrafını tamamlayın veya Kadraj Modülünde Kuzey (N) yönünü seçin!");
+                alert("Hata: Görseller okunamadı! Lütfen masayı kadrajlayıp Kuzey (N) yönünü seçtiğinizden emin olun.");
                 if (btn) btn.disabled = false;
+                if (status) status.innerText = "❌ Görsel verisi eksik.";
                 return;
             }
 
@@ -426,7 +451,7 @@ async function processBoard() {
             ];
         }
 
-        if (status) status.innerText = `2/2 🚀 ${API_MODEL} Modeline İstek Gönderiliyor...`;
+        if (status) status.innerText = `2/2 🚀 Model Analiz Ediyor...`;
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${API_MODEL}:generateContent?key=${apiKey}`;
 
         const response = await fetchWithRetry(url, {
@@ -453,34 +478,11 @@ async function processBoard() {
 
         const parsedResults = JSON.parse(rawJsonText);
 
-        if (status) status.innerText = "52 Kart Doğrulaması Yapılıyor...";
-        if (typeof validateDeck === 'function' && validationBox) {
-            const validation = validateDeck(parsedResults);
-            validationBox.innerHTML = validation.html;
-            validationBox.className = `status-banner ${validation.isPerfect ? 'success' : 'warning'}`;
+        // script2.js ana yöneticisine doğrudan aktarım:
+        if (typeof processAnalysisResult === 'function') {
+            processAnalysisResult(parsedResults);
         }
 
-        const boardSelect = document.getElementById('board-number');
-        const boardNo = boardSelect ? boardSelect.value : '1';
-        const formattedHands = {};
-        for (let dir of ['N', 'E', 'S', 'W']) {
-            const h = parsedResults[dir] || {};
-            if (typeof formatSuitForPbn === 'function') {
-                formattedHands[dir] = `${formatSuitForPbn(h.S)}.${formatSuitForPbn(h.H)}.${formatSuitForPbn(h.D)}.${formatSuitForPbn(h.C)}`;
-            }
-        }
-
-        if (typeof buildPbnString === 'function') {
-            const pbnText = buildPbnString(boardNo, formattedHands.N, formattedHands.E, formattedHands.S, formattedHands.W);
-            const pbnOutput = document.getElementById('pbnOutput');
-            if (pbnOutput) pbnOutput.value = pbnText;
-        }
-
-        if (typeof renderHumanReadableHands === 'function') {
-            renderHumanReadableHands(parsedResults);
-        }
-
-        if (resultPanel) resultPanel.style.display = 'block';
         if (status) status.innerText = "✅ İşlem Başarıyla Tamamlandı!";
 
     } catch (err) {
