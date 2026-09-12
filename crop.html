@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Briç Masa Fotoğrafı Kırpma Aracı v1.1</title>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Briç Masa Fotoğrafı Kırpma Aracı <span class="badge">v1.1</span></h1>
+            <p class="subtitle">Tek kare masa fotoğrafını NORTH, EAST, SOUTH, WEST bölgelerine ayırıp indirin.</p>
+        </header>
+
+        <div class="panel">
+            <div class="upload-area" onclick="document.getElementById('imageInput').click()">
+                <div class="btn-upload">📁 Fotoğraf Seç / Masa Çek</div>
+                <input type="file" id="imageInput" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+                <span class="upload-hint">4 eli içeren tek kare masa fotoğrafını yükleyin.</span>
+            </div>
+
+            <!-- MANUEL SLIDER AYARLARI (Orijinal Yüzdeler & ID'ler) -->
+            <div class="controls-card" id="controlsCard" style="display: none;">
+                <h3>⚙️ Kırpma Oranları ve Örtüşme Payları (Canlı Ayar)</h3>
+                <div class="grid-controls">
+                    <div class="control-group">
+                        <label>KUZEY (NORTH - Üst Yükseklik): <span class="val-badge" id="valTop">38%</span></label>
+                        <input type="range" id="sliderTop" min="20" max="60" value="38" oninput="updateCrops()">
+                    </div>
+                    <div class="control-group">
+                        <label>GÜNEY (SOUTH - Alt Yükseklik): <span class="val-badge" id="valBottom">38%</span></label>
+                        <input type="range" id="sliderBottom" min="20" max="60" value="38" oninput="updateCrops()">
+                    </div>
+                    <div class="control-group">
+                        <label>BATI (WEST - Sol Genişlik): <span class="val-badge" id="valLeft">42%</span></label>
+                        <input type="range" id="sliderLeft" min="20" max="60" value="42" oninput="updateCrops()">
+                    </div>
+                    <div class="control-group">
+                        <label>DOĞU (EAST - Sağ Genişlik): <span class="val-badge" id="valRight">42%</span></label>
+                        <input type="range" id="sliderRight" min="20" max="60" value="42" oninput="updateCrops()">
+                    </div>
+                </div>
+                <p style="font-size:0.8rem; color:#94a3b8; margin-top: 10px;">* Kartların dışarıda kalmaması için orta kısımlarda bilinçli olarak örtüşme (overlap) bırakılmıştır.</p>
+            </div>
+
+            <div id="statusBanner" class="status-banner status-info" style="display:none;">
+                ⚠️ Lütfen Kuzey (N) olan kutunun altındaki <strong>"🧭 Bu Kutu Kuzey (N)"</strong> butonuna tıklayın.
+            </div>
+
+            <!-- 4 BÖLGE KADRAJ GRIDI -->
+            <div class="table-grid" id="tableGrid" style="display: none;">
+                
+                <!-- ÜST BÖLGE (Index 0) -->
+                <div class="crop-card" id="cropCard-0">
+                    <span class="region-label">Üst Bölge</span>
+                    <span id="cropBadge-0" class="dir-badge unassigned">Seçilmedi</span>
+                    <img id="cropPrev-0" class="crop-preview-img" alt="Üst">
+                    <button class="btn-set-north" onclick="setNorthPosition(0)">🧭 Bu Kutu Kuzey (N)</button>
+                </div>
+
+                <!-- ORTA SATIR: SOL (Index 3) & SAĞ (Index 1) -->
+                <div class="grid-middle-row">
+                    <div class="crop-card" id="cropCard-3">
+                        <span class="region-label">Sol Bölge</span>
+                        <span id="cropBadge-3" class="dir-badge unassigned">Seçilmedi</span>
+                        <img id="cropPrev-3" class="crop-preview-img" alt="Sol">
+                        <button class="btn-set-north" onclick="setNorthPosition(3)">🧭 Bu Kutu Kuzey (N)</button>
+                    </div>
+
+                    <div class="crop-card" id="cropCard-1">
+                        <span class="region-label">Sağ Bölge</span>
+                        <span id="cropBadge-1" class="dir-badge unassigned">Seçilmedi</span>
+                        <img id="cropPrev-1" class="crop-preview-img" alt="Sağ">
+                        <button class="btn-set-north" onclick="setNorthPosition(1)">🧭 Bu Kutu Kuzey (N)</button>
+                    </div>
+                </div>
+
+                <!-- ALT BÖLGE (Index 2) -->
+                <div class="crop-card" id="cropCard-2">
+                    <span class="region-label">Alt Bölge</span>
+                    <span id="cropBadge-2" class="dir-badge unassigned">Seçilmedi</span>
+                    <img id="cropPrev-2" class="crop-preview-img" alt="Alt">
+                    <button class="btn-set-north" onclick="setNorthPosition(2)">🧭 Bu Kutu Kuzey (N)</button>
+                </div>
+
+            </div>
+
+            <button id="btnDownload" class="btn btn-success btn-large" disabled onclick="downloadAllCrops()">
+                ⬇️ 4 Bölgeyi de İndir (Tüm Yönler)
+            </button>
+        </div>
+
+        <div class="info-box">
+            <strong>📌 Kullanım Notları:</strong>
+            <ul>
+                <li>İndirilen dosyalar seçtiğiniz Kuzey yönüne göre sırasıyla <code>bridge_crop_NORTH.jpg</code>, <code>bridge_crop_EAST.jpg</code>, <code>bridge_crop_SOUTH.jpg</code>, <code>bridge_crop_WEST.jpg</code> olarak adlandırılır.</li>
+                <li>Eğer bir kart kenardan kesiliyorsa, yukarıdaki kaydırıcılar (sliders) ile oranları artırıp tam kapsama sağlayabilirsiniz.</li>
+            </ul>
+        </div>
+    </div>
+ 
+</body>
+</html>
