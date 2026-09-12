@@ -1,0 +1,62 @@
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #121826; color: #f0f4f8; padding: 20px; line-height: 1.5; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #2a3447; }
+        h1 { font-size: 1.8rem; color: #38bdf8; margin-bottom: 8px; }
+        .badge { background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 0.8rem; vertical-align: middle; }
+        p.subtitle { color: #94a3b8; font-size: 0.95rem; }
+
+        .panel { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 25px; }
+        .upload-area { background: #1e293b; border: 2px dashed #38bdf8; border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: border-color 0.2s; }
+        .upload-area:hover { border-color: #7dd3fc; }
+        .btn-upload { color: #38bdf8; font-weight: 700; font-size: 1.1rem; }
+        .upload-hint { color: #94a3b8; font-size: 0.85rem; margin-top: 8px; display: block; }
+
+        .btn { display: inline-block; background: #0284c7; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.95rem; transition: background 0.2s; text-decoration: none; margin: 4px; }
+        .btn:hover { background: #0369a1; }
+        .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; opacity: 0.6; }
+        .btn-success { background: #10b981; }
+        .btn-success:hover { background: #059669; }
+        .btn-large { width: 100%; padding: 14px; font-size: 1.1rem; margin-top: 15px; }
+
+        /* MANUEL SLIDER PANELSİ */
+        .controls-card { background: #0f172a; padding: 18px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #334155; }
+        .controls-card h3 { font-size: 1rem; color: #f1f5f9; margin-bottom: 15px; border-bottom: 1px solid #1e293b; padding-bottom: 8px; }
+        .grid-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; }
+        .control-group { background: #1e293b; padding: 12px; border-radius: 8px; }
+        .control-group label { display: block; font-size: 0.85rem; color: #cbd5e1; margin-bottom: 6px; }
+        .control-group input[type="range"] { width: 100%; cursor: pointer; }
+        .val-badge { float: right; color: #38bdf8; font-weight: bold; }
+
+        /* UYARI BANNERI */
+        .status-banner { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem; text-align: center; }
+        .status-info { background: #0f172a; border: 1px solid #38bdf8; color: #7dd3fc; }
+        .status-success { background: #064e3b; border: 1px solid #10b981; color: #6ee7b7; }
+
+        /* KADRAJ GRID DÜZENİ */
+        .table-grid { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 20px 0; }
+        .grid-middle-row { display: flex; justify-content: center; gap: 15px; width: 100%; flex-wrap: wrap; }
+
+        .crop-card { background: #1e293b; border-radius: 12px; border: 1px solid #334155; padding: 12px; width: 280px; display: flex; flex-direction: column; align-items: center; transition: all 0.2s; }
+        .crop-card.is-north { border: 2px solid #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.3); }
+        .crop-card.is-assigned { border: 1px solid #10b981; }
+
+        .region-label { font-size: 0.85rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; margin-bottom: 6px; }
+
+        /* YÖN ETİKETLERİ */
+        .dir-badge { font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 20px; margin-bottom: 8px; }
+        .dir-badge.unassigned { background: #334155; color: #94a3b8; }
+        .dir-badge.badge-N { background: #0284c7; color: #fff; }
+        .dir-badge.badge-E { background: #d97706; color: #fff; }
+        .dir-badge.badge-S { background: #16a34a; color: #fff; }
+        .dir-badge.badge-W { background: #9333ea; color: #fff; }
+
+        /* GÖRSEL BOYUT KISITLAMASI */
+        .crop-preview-img { width: 100%; max-height: 200px; object-fit: contain; border-radius: 6px; border: 1px solid #0f172a; background: #090d16; margin: 8px 0; display: block; }
+
+        .btn-set-north { background: #0f172a; color: #38bdf8; border: 1px solid #38bdf8; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; width: 100%; margin-top: 6px; transition: all 0.2s; }
+        .btn-set-north:hover { background: #38bdf8; color: #0f172a; }
+
+        .info-box { background: #1e293b; border-left: 4px solid #38bdf8; padding: 15px; border-radius: 4px; margin-top: 25px; font-size: 0.9rem; color: #cbd5e1; }
+        .info-box ul { margin-left: 20px; margin-top: 8px; }
+        .info-box li { margin-bottom: 4px; }
