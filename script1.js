@@ -16,9 +16,8 @@ let activeSingleDir = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     const savedKey = localStorage.getItem('gemini_api_key');
-    const apiPanel = document.getElementById('api-panel');
-    const badge = document.getElementById('api-status');
     const apiKeyInput = document.getElementById('api-key-input');
+    const badge = document.getElementById('api-status');
 
     if (savedKey) {
         if (apiKeyInput) apiKeyInput.value = savedKey;
@@ -37,8 +36,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // HTML'deki 'btn-analyze' ID'li analize başlama butonunu bağlama
+    const analyzeBtn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
+    if (analyzeBtn) {
+        analyzeBtn.addEventListener('click', processBoard);
+    }
+
     populateBoardDropdown();
     updateSeqButtonState();
+    checkCanAnalyze();
 });
 
 function switchMode(mode) {
@@ -52,6 +58,8 @@ function switchMode(mode) {
     const areaSingle = document.getElementById('modeSingleTableArea');
     if (area4) area4.style.display = mode === '4photos' ? 'block' : 'none';
     if (areaSingle) areaSingle.style.display = mode === 'singleTable' ? 'block' : 'none';
+
+    checkCanAnalyze();
 }
 
 function toggleApiKeyPanel() {
@@ -133,9 +141,18 @@ function setHandImage(dir, file) {
     if (card) {
         card.classList.add('has-image');
     }
+    checkCanAnalyze();
 }
 
-// Dosya isminden yön tespit etme
+function checkCanAnalyze() {
+    const btn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
+    if (!btn) return;
+
+    // HTML'de kilitli (disabled) kalan butonun kilidini kaldırır
+    btn.removeAttribute('disabled');
+    btn.disabled = false;
+}
+
 function detectDirectionFromFileName(fileName) {
     const name = fileName.toUpperCase();
     if (name.includes('NORTH') || name.includes('KUZEY') || name.includes('_N.')) return 'N';
@@ -174,6 +191,7 @@ function handleBatchFileSelect(event) {
     resetDropdownSelectors();
     currentSeqIndex = 4;
     updateSeqButtonState();
+    checkCanAnalyze();
 }
 
 function resetDropdownSelectors() {
@@ -183,7 +201,6 @@ function resetDropdownSelectors() {
     });
 }
 
-// Metin tabanlı yön takas (Swap) mantığı
 function handleDirSelectChange(targetSlot, selectedDir) {
     if (targetSlot === selectedDir) return;
 
@@ -253,6 +270,7 @@ function handleSeqCameraSelect(event) {
     setHandImage(seqDirections[currentSeqIndex], file);
     currentSeqIndex++;
     updateSeqButtonState();
+    checkCanAnalyze();
     event.target.value = '';
 }
 
@@ -274,7 +292,7 @@ function updateSeqButtonState() {
             btn.innerText = `✅ 4 El Çekildi (Yeniden Çek)`;
             btn.style.background = '#0284c7';
         }
-        if (desc) desc.innerText = `4 el hazır! "Bordu Çöz" butonuna basabilirsiniz.`;
+        if (desc) desc.innerText = `4 el hazır! "Gemini ile Analiz Et" butonuna basabilirsiniz.`;
         if (resetBtn) resetBtn.style.display = 'inline-block';
     }
 }
@@ -293,6 +311,7 @@ function resetSeqFlow() {
     });
     resetDropdownSelectors();
     updateSeqButtonState();
+    checkCanAnalyze();
 }
 
 function triggerSingleUpload(dir) {
@@ -316,6 +335,7 @@ function handleSingleTableSelect(event) {
         img.src = URL.createObjectURL(file);
         img.style.display = 'block';
     }
+    checkCanAnalyze();
     event.target.value = '';
 }
 
@@ -368,10 +388,10 @@ async function processBoard() {
         return;
     }
 
-    const btn = document.getElementById('btnProcess');
+    const btn = document.getElementById('btn-analyze') || document.getElementById('btnProcess') || document.getElementById('btnAnalyze');
     const status = document.getElementById('status');
-    const resultPanel = document.getElementById('resultPanel');
-    const validationBox = document.getElementById('validationBox');
+    const resultPanel = document.getElementById('results-panel');
+    const validationBox = document.getElementById('deck-validation-status');
 
     if (btn) btn.disabled = true;
     if (resultPanel) resultPanel.style.display = 'none';
@@ -438,7 +458,7 @@ async function processBoard() {
         if (typeof validateDeck === 'function' && validationBox) {
             const validation = validateDeck(parsedResults);
             validationBox.innerHTML = validation.html;
-            validationBox.className = `validation-report ${validation.isPerfect ? 'success' : 'warning'}`;
+            validationBox.className = `status-banner ${validation.isPerfect ? 'success' : 'warning'}`;
         }
 
         const boardSelect = document.getElementById('board-number');
